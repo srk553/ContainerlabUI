@@ -1,0 +1,326 @@
+* **Target user**: networking students, DevOps engineers, trainers (very similar to *your training & lab use cases*)
+* **First open-source project**
+* **CLI-backed (no Containerlab API today)**
+
+---
+
+# 📄 Product Requirements Document (PRD)
+
+## Product Name (Working Title)
+
+**ClabUI**
+*A visual, drag-and-drop web interface for Containerlab*
+
+---
+
+## 1. Problem Statement
+
+Containerlab is powerful but **CLI-only**.
+This creates friction for:
+
+* Beginners & students
+* Trainers building repeatable labs
+* Engineers who want **visual topology design**
+* Users coming from PNETLab / EVE-NG
+
+There is **no official GUI**, no topology canvas, and no YAML auto-generation UI.
+
+---
+
+## 2. Goals & Objectives
+
+### Primary Goals
+
+* Create a **browser-based topology designer**
+* Enable **drag-and-drop node creation**
+* Auto-generate **Containerlab YAML**
+* Deploy labs using the **containerlab CLI**
+* Keep the project **open-source & extensible**
+
+### Non-Goals (Phase 1)
+
+* No multi-tenant RBAC
+* No cloud orchestration
+* No commercial licensing
+* No replacing Containerlab itself
+
+---
+
+## 3. Target Users
+
+### Primary
+
+* Networking students
+* DevOps / SRE engineers
+* Trainers & instructors
+* Lab builders
+
+### Secondary
+
+* Open-source contributors
+* CI/CD demo builders
+* Network automation engineers
+
+---
+
+## 4. User Personas
+
+### Persona 1 – Student
+
+* Wants visual topology
+* Doesn’t know YAML deeply
+* Needs quick deploy / destroy
+
+### Persona 2 – Trainer (⚠️ This is YOU)
+
+* Wants reusable labs
+* Needs YAML export
+* Wants deterministic builds
+
+### Persona 3 – Engineer
+
+* Wants speed
+* Wants inspect & logs
+* Uses existing images (FRR, Juniper, Linux)
+
+---
+
+## 5. Key Use Cases
+
+1. Drag routers onto canvas
+2. Connect nodes visually
+3. Assign interfaces automatically
+4. Generate Containerlab YAML
+5. Deploy lab with one click
+6. Inspect nodes & links
+7. Destroy lab
+
+---
+
+## 6. Functional Requirements
+
+### 6.1 Topology Canvas
+
+* Drag-and-drop nodes
+* Zoom, pan, grid snap
+* Visual links between nodes
+* Auto-naming interfaces
+
+### 6.2 Node Management
+
+Supported node types:
+
+* Linux
+* FRR
+* CEOS
+* Juniper vJunos
+* Generic Docker
+
+Node properties:
+
+* Name
+* Image
+* Kind
+* Env vars
+* Mounts
+* Startup commands
+
+---
+
+### 6.3 Link Management
+
+* Click-to-connect
+* Auto-assign `ethX`
+* Manual override
+* Multiple links per node
+
+---
+
+### 6.4 YAML Generator
+
+* Real-time YAML preview
+* Editable YAML panel
+* Validate YAML before deploy
+* Export / import YAML
+
+---
+
+### 6.5 Lab Lifecycle
+
+Actions:
+
+* Deploy lab
+* Destroy lab
+* Inspect lab
+* View logs
+
+Execution:
+
+* Backend runs `containerlab` CLI
+* Streams output to UI
+
+---
+
+### 6.6 Project Management
+
+* Save topology as JSON
+* Load saved topology
+* Version lab configs
+
+---
+
+## 7. Non-Functional Requirements
+
+### Performance
+
+* Canvas should handle 50+ nodes
+* YAML generation < 100ms
+
+### Security
+
+* No root in frontend
+* Backend runs containerlab securely
+* Optional local-only mode
+
+### Portability
+
+* Runs via Docker Compose
+* Works on Linux host
+
+---
+
+## 8. Technical Architecture
+
+### High-Level Diagram
+
+```
+[ Browser ]
+    |
+[ React UI (React Flow) ]
+    |
+[ REST API (Go / FastAPI) ]
+    |
+[ containerlab CLI ]
+    |
+[ Docker Engine ]
+```
+
+---
+
+## 9. Technology Stack
+
+### Frontend
+
+* React
+* React Flow
+* TypeScript
+* Tailwind CSS
+* Monaco Editor (YAML)
+
+### Backend
+
+* Go (preferred)
+
+  * OR FastAPI (Python) for MVP
+* Executes containerlab via shell
+* Exposes REST API
+
+### API Documentation
+
+* OpenAPI 3.0
+* Swagger UI (`/docs`)
+* ReDoc (`/redoc`)
+
+---
+
+## 10. API Requirements (Example)
+
+```http
+POST /labs/deploy
+POST /labs/destroy
+GET  /labs
+GET  /labs/{id}
+POST /yaml/validate
+```
+
+---
+
+## 11. Open Source Strategy
+
+### License
+
+* **Apache 2.0** (recommended)
+* OR MIT
+
+### Repo Structure
+
+```
+clab-ui/
+├── frontend/
+├── backend/
+├── docs/
+├── examples/
+├── CONTRIBUTING.md
+├── LICENSE
+└── README.md
+```
+
+### Contribution Guidelines
+
+* Issues → PR → Review
+* Labels: good-first-issue
+* Roadmap published
+
+---
+
+## 12. Milestones & Phases
+
+### Phase 1 – MVP (4–6 weeks)
+
+* Canvas
+* Node creation
+* YAML export
+
+### Phase 2 – Execution (2–3 weeks)
+
+* Deploy / destroy
+* Logs
+* Inspect
+
+### Phase 3 – Polish
+
+* Templates
+* Validation
+* Docs
+* Examples
+
+---
+
+## 13. Risks & Mitigations
+
+| Risk                | Mitigation                    |
+| ------------------- | ----------------------------- |
+| No containerlab API | CLI wrapper                   |
+| Docker permissions  | Run backend with sudo / group |
+| YAML drift          | Schema validation             |
+| Scope creep         | Strict MVP                    |
+
+---
+
+## 14. Success Metrics
+
+* ⭐ GitHub stars
+* 🔁 YAML reuse
+* 👥 Contributors
+* 🧪 Labs created
+* 📘 Adoption in training
+
+---
+
+## 15. Open Questions (Future)
+
+* Multi-user support?
+* Auth?
+* Remote execution?
+* Plugin system?
+
