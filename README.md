@@ -4,7 +4,14 @@
 
 ![ClabUI Designer Overview](images/designer_overview.webp)
 
+## 🎨 Project Evolution
+
+| Start | End |
+| :---: | :---: |
+| ![Initial Version](images/start.png) | ![Final Version](images/end.png) |
+
 ## ✨ Features
+
 
 - **Nano-Scale Visuals**: Ultra-compact node design for high-density network modeling.
 - **Drag & Drop Palette**: Rapidly build topologies by dragging vendor nodes directly onto a fluid canvas.
@@ -17,7 +24,7 @@
 ## 🛠️ Feature Spotlight: Node Properties
 Configure your network nodes on the fly. Change hostnames or point to local Docker images to resolve deployment errors instantly.
 
-![Node Properties Editor](images/node_properties.png)
+
 
 ## 🚀 Getting Started
 
