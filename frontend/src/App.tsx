@@ -4,13 +4,11 @@ import ReactFlow, {
   Controls,
   Panel,
   useReactFlow,
-  ReactFlowProvider,
-  useNodesState,
-  useEdgesState
+  ReactFlowProvider
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useStore } from './store';
-import { Network, Server, Play, FileCode, ChevronRight, X, Terminal, Trash2, Settings, Globe, Key, User, Cpu, Box, HardDrive, Share2, Tag, Grab, Info, Edit3 } from 'lucide-react';
+import { Network, Server, Play, FileCode, ChevronRight, X, Terminal, Trash2, Settings, Globe, User, Cpu, Box, HardDrive, Share2, Tag, Grab, Info, Edit3, Milestone } from 'lucide-react';
 import { generateClabYaml, generateClabConfig } from './utils';
 import Editor from '@monaco-editor/react';
 import ClabNode from './components/ClabNode';
@@ -18,7 +16,7 @@ import ClabNode from './components/ClabNode';
 function EditorComponent() {
   const {
     nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, updateNodeData,
-    apiUrl, setApiUrl, apiToken, setApiToken, apiUser, setApiUser,
+    apiUrl, setApiUrl, apiToken, apiUser, setApiUser,
     labName, setLabName
   } = useStore();
   const { screenToFlowPosition } = useReactFlow();
@@ -172,7 +170,8 @@ function EditorComponent() {
       'arista': 'ceos:latest',
       'juniper': 'vrnetlab/vr-vsrx:latest',
       'vyos': 'vyos/vyos:1.3.0',
-      'mikrotik': 'mikrotik/ros:latest'
+      'mikrotik': 'mikrotik/ros:latest',
+      'bridge': '' // Bridges don't have images
     };
     return images[kind] || 'alpine:latest';
   };
@@ -251,7 +250,7 @@ function EditorComponent() {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar */}
-        <aside className="w-64 border-r glass p-4 flex flex-col gap-6 shrink-0 overflow-y-auto custom-scrollbar">
+        <aside className="w-64 border-r glass p-4 flex flex-col gap-6 shrink-0 overflow-y-auto overflow-x-hidden custom-scrollbar">
           {selectedNode ? (
             <div className="animate-in fade-in slide-in-from-left duration-200">
               <div className="flex items-center justify-between mb-4">
@@ -277,16 +276,18 @@ function EditorComponent() {
                     className="w-full bg-background border rounded-md py-1.5 px-3 text-xs focus:ring-1 focus:ring-primary outline-none"
                   />
                 </div>
-                <div>
-                  <label className="text-[10px] text-muted-foreground mb-1 block">Docker Image</label>
-                  <input
-                    type="text"
-                    value={selectedNode.data.image}
-                    onChange={(e) => updateNodeData(selectedNode.id, { image: e.target.value })}
-                    className="w-full bg-background border rounded-md py-1.5 px-3 text-xs font-mono focus:ring-1 focus:ring-primary outline-none"
-                  />
-                  <p className="text-[9px] text-muted-foreground mt-1 px-1">Tip: Use local images like 'ceos:4.30' for Arista.</p>
-                </div>
+                {selectedNode.data.kind !== 'bridge' && (
+                  <div>
+                    <label className="text-[10px] text-muted-foreground mb-1 block">Docker Image</label>
+                    <input
+                      type="text"
+                      value={selectedNode.data.image}
+                      onChange={(e) => updateNodeData(selectedNode.id, { image: e.target.value })}
+                      className="w-full bg-background border rounded-md py-1.5 px-3 text-xs font-mono focus:ring-1 focus:ring-primary outline-none"
+                    />
+                    <p className="text-[9px] text-muted-foreground mt-1 px-1">Tip: Use local images like 'ceos:4.30' for Arista.</p>
+                  </div>
+                )}
                 <div className="pt-2 border-t border-white/5">
                   <p className="text-[10px] text-muted-foreground">Type: <span className="text-foreground uppercase font-mono">{selectedNode.data.kind}</span></p>
                 </div>
@@ -340,6 +341,20 @@ function EditorComponent() {
                 </h4>
                 <div className="space-y-4">
                   <div>
+                    <h5 className="text-[9px] text-muted-foreground mb-2 ml-1">Connectors</h5>
+                    <div
+                      draggable
+                      onDragStart={(e) => onDragStart(e, 'bridge')}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-lg bg-secondary/30 border border-transparent hover:border-primary/50 hover:bg-secondary/50 transition-all cursor-grab active:cursor-grabbing group"
+                    >
+                      <div className="w-8 h-8 rounded bg-background flex items-center justify-center border group-hover:border-primary/30">
+                        <Milestone size={16} className="text-yellow-400" />
+                      </div>
+                      <span className="text-xs font-medium">Linux Bridge</span>
+                    </div>
+                  </div>
+
+                  <div>
                     <h5 className="text-[9px] text-muted-foreground mb-2 ml-1">Hosts</h5>
                     <div
                       draggable
@@ -354,26 +369,27 @@ function EditorComponent() {
                   </div>
 
                   <div>
-                    <h5 className="text-[9px] text-muted-foreground mb-2 ml-1">Vendors</h5>
-                    <div className="space-y-1.5">
+                    <h5 className="text-[9px] text-muted-foreground mb-2 ml-1 uppercase tracking-tight">Vendors</h5>
+                    <div className="grid grid-cols-2 gap-2">
                       {[
-                        { id: 'nokia', name: 'Nokia SRL', icon: <Cpu size={16} className="text-blue-400" /> },
-                        { id: 'arista', name: 'Arista cEOS', icon: <Box size={16} className="text-sky-400" /> },
-                        { id: 'juniper', name: 'Juniper vSRX', icon: <HardDrive size={16} className="text-teal-400" /> },
-                        { id: 'frr', name: 'FRR Router', icon: <Network size={16} className="text-primary" /> },
-                        { id: 'vyos', name: 'VyOS', icon: <Share2 size={16} className="text-orange-400" /> },
-                        { id: 'mikrotik', name: 'Mikrotik', icon: <Network size={16} className="text-rose-400" /> },
+                        { id: 'nokia', name: 'Nokia SRL', icon: <Cpu size={14} className="text-blue-400" /> },
+                        { id: 'arista', name: 'Arista cEOS', icon: <Box size={14} className="text-sky-400" /> },
+                        { id: 'juniper', name: 'Juniper vSRX', icon: <HardDrive size={14} className="text-teal-400" /> },
+                        { id: 'frr', name: 'FRR Router', icon: <Network size={14} className="text-primary" /> },
+                        { id: 'vyos', name: 'VyOS', icon: <Share2 size={14} className="text-orange-400" /> },
+                        { id: 'mikrotik', name: 'Mikrotik', icon: <Network size={14} className="text-rose-400" /> },
                       ].map((node) => (
                         <div
                           key={node.id}
                           draggable
                           onDragStart={(e) => onDragStart(e, node.id)}
-                          className="w-full flex items-center gap-3 p-2.5 rounded-lg bg-secondary/30 border border-transparent hover:border-primary/50 hover:bg-secondary/50 transition-all cursor-grab active:cursor-grabbing group"
+                          className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-secondary/20 border border-transparent hover:border-primary/40 hover:bg-secondary/40 transition-all cursor-grab active:cursor-grabbing group text-center"
+                          title={node.name}
                         >
-                          <div className="w-8 h-8 rounded bg-background flex items-center justify-center border group-hover:border-primary/30">
+                          <div className="w-7 h-7 rounded bg-background flex items-center justify-center border group-hover:border-primary/20">
                             {node.icon}
                           </div>
-                          <span className="text-xs font-medium">{node.name}</span>
+                          <span className="text-[9px] font-medium truncate w-full">{node.name}</span>
                         </div>
                       ))}
                     </div>
@@ -426,7 +442,7 @@ function EditorComponent() {
           </ReactFlow>
         </main>
 
-        {/* YAML & Console Panels (omitted for brevity, assume they are still there) */}
+        {/* YAML Preview Panel */}
         {showPreview && (
           <aside className="w-[400px] border-l glass flex flex-col shrink-0 animate-in slide-in-from-right duration-300">
             <div className="h-12 border-b flex items-center justify-between px-4 shrink-0 bg-background/50">
@@ -458,6 +474,7 @@ function EditorComponent() {
           </aside>
         )}
 
+        {/* Console Panel */}
         {showLogs && (
           <aside className="w-[500px] border-l glass flex flex-col shrink-0 animate-in slide-in-from-right duration-300">
             <div className="h-12 border-b flex items-center justify-between px-4 shrink-0 bg-[#0f1117]">
