@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
-import { Network, Server, Cpu, Box, HardDrive, Share2, Milestone } from 'lucide-react';
+import { Network, Server, Cpu, Box, HardDrive, Share2 } from 'lucide-react';
 
 const icons: Record<string, any> = {
     'linux': <Server size={10} className="text-primary" />,
@@ -10,7 +10,6 @@ const icons: Record<string, any> = {
     'juniper': <HardDrive size={10} className="text-teal-400" />,
     'vyos': <Share2 size={10} className="text-orange-400" />,
     'mikrotik': <Network size={10} className="text-rose-400" />,
-    'bridge': <Milestone size={10} className="text-yellow-400" />,
 };
 
 const ClabNode = ({ data, selected }: NodeProps) => {

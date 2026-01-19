@@ -11,8 +11,7 @@ export function getClabKindMapping(kind: string) {
         'arista': 'ceos',
         'juniper': 'juniper_vsrx',
         'vyos': 'vyosnetworks_vyos',
-        'mikrotik': 'mikrotik_ros',
-        'bridge': 'bridge'
+        'mikrotik': 'mikrotik_ros'
     };
     return mapping[kind] || 'linux';
 }
@@ -33,13 +32,14 @@ export function generateClabConfig(nodes: Node<ClabNodeData>[], edges: Edge[], l
             kind: clabKind,
         };
 
-        // Only add image if it's not a bridge
-        if (clabKind !== 'bridge' && node.data.image) {
+        // Add image
+        if (node.data.image) {
             nodeConfig.image = node.data.image;
         }
 
         clabConfig.topology.nodes[node.id] = nodeConfig;
     });
+
 
     // Process Links
     edges.forEach((edge) => {

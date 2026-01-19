@@ -8,7 +8,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useStore } from './store';
-import { Network, Server, Play, FileCode, ChevronRight, X, Terminal, Trash2, Settings, Globe, User, Cpu, Box, HardDrive, Share2, Tag, Grab, Info, Edit3, Milestone } from 'lucide-react';
+import { Network, Server, Play, FileCode, ChevronRight, X, Terminal, Trash2, Settings, Globe, User, Cpu, Box, HardDrive, Share2, Tag, Grab, Info, Edit3 } from 'lucide-react';
 import { generateClabYaml, generateClabConfig } from './utils';
 import Editor from '@monaco-editor/react';
 import ClabNode from './components/ClabNode';
