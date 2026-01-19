@@ -402,6 +402,11 @@ function EditorComponent() {
               <Terminal size={14} />
               {showLogs ? 'Hide Logs' : 'Show Logs'}
             </button>
+            <div className="mt-4 text-center">
+              <p className="text-[10px] text-muted-foreground/50 flex items-center justify-center gap-1">
+                Made with <span className="text-primary/50">❤️</span> by <span className="font-semibold text-foreground/40">srk</span>
+              </p>
+            </div>
           </div>
         </aside>
 

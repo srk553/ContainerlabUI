@@ -54,3 +54,7 @@ npm run dev
 ## 📄 License
 
 ClabUI is released under the [Apache 2.0 License](LICENSE).
+
+---
+Made with ❤️ by **srk**
+
