@@ -37,6 +37,11 @@ export function generateClabConfig(nodes: Node<ClabNodeData>[], edges: Edge[], l
             nodeConfig.image = node.data.image;
         }
 
+        // Add exec commands
+        if (node.data.exec && node.data.exec.length > 0) {
+            nodeConfig.exec = node.data.exec;
+        }
+
         clabConfig.topology.nodes[node.id] = nodeConfig;
     });
 

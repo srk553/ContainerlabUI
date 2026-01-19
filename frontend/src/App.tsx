@@ -8,25 +8,63 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useStore } from './store';
-import { Network, Server, Play, FileCode, ChevronRight, X, Terminal, Trash2, Settings, Globe, User, Cpu, Box, HardDrive, Share2, Tag, Grab, Info, Edit3 } from 'lucide-react';
+import { Network, Server, Play, FileCode, ChevronRight, X, Terminal, Trash2, Settings, Globe, User, Cpu, Box, HardDrive, Share2, Tag, Grab, Info, Edit3, LayoutTemplate } from 'lucide-react';
 import { generateClabYaml, generateClabConfig } from './utils';
 import Editor from '@monaco-editor/react';
 import ClabNode from './components/ClabNode';
+import { templates } from './templates/index';
 
 function EditorComponent() {
   const {
-    nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, updateNodeData,
+    nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, updateNodeData, setNodes, setEdges,
     apiUrl, setApiUrl, apiToken, apiUser, setApiUser,
     labName, setLabName
   } = useStore();
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
 
   const [yamlPreview, setYamlPreview] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [showLogs, setShowLogs] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
+  const [consoleWidth, setConsoleWidth] = useState(500);
+  const [isResizing, setIsResizing] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(templates[0]?.id || '');
   const logEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Auto-fit view when YAML panel opens
+    setTimeout(() => {
+      fitView({ duration: 300 });
+    }, 100);
+  }, [showPreview, showLogs, fitView]);
+
+  // Resize handler
+  const startResizing = useCallback(() => {
+    setIsResizing(true);
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const resize = useCallback((mouseMoveEvent: MouseEvent) => {
+    if (isResizing) {
+      const newWidth = window.innerWidth - mouseMoveEvent.clientX;
+      if (newWidth > 300 && newWidth < 1200) {
+        setConsoleWidth(newWidth);
+      }
+    }
+  }, [isResizing]);
+
+  useEffect(() => {
+    window.addEventListener("mousemove", resize);
+    window.addEventListener("mouseup", stopResizing);
+    return () => {
+      window.removeEventListener("mousemove", resize);
+      window.removeEventListener("mouseup", stopResizing);
+    };
+  }, [resize, stopResizing]);
 
   // Filter for selected node
   const selectedNode = useMemo(() => nodes.find(n => n.selected), [nodes]);
@@ -232,20 +270,36 @@ function EditorComponent() {
           <h1 className="text-xl font-bold tracking-tight">ClabUI</h1>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setShowPreview(!showPreview)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors text-sm font-medium ${showPreview ? 'bg-primary text-primary-foreground' : 'bg-secondary hover:bg-secondary/80'}`}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors text-xs font-semibold border ${showPreview ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary/50 text-foreground border-white/10 hover:bg-secondary'}`}
           >
-            <FileCode size={18} />
+            <FileCode size={14} />
             YAML
+          </button>
+          <div className="h-4 w-px bg-white/10 mx-1" />
+          <button
+            disabled={isDeploying}
+            onClick={handleDestroy}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 disabled:opacity-50 transition-colors text-xs font-semibold border border-destructive/20"
+            title="Destroy Lab"
+          >
+            <Trash2 size={14} />
+          </button>
+          <button
+            onClick={() => setShowLogs(!showLogs)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors text-xs font-semibold border ${showLogs ? 'bg-secondary text-foreground border-white/20' : 'bg-secondary/50 text-muted-foreground border-white/10 hover:bg-secondary hover:text-foreground'}`}
+            title={showLogs ? 'Hide Logs' : 'Show Logs'}
+          >
+            <Terminal size={14} />
           </button>
           <button
             disabled={isDeploying}
             onClick={handleDeploy}
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium shadow-lg shadow-primary/20"
+            className="flex items-center gap-2 px-4 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs font-bold shadow-lg shadow-primary/20"
           >
-            <Play size={18} />
+            <Play size={14} fill="currentColor" />
             {isDeploying ? 'Deploying...' : 'Deploy'}
           </button>
         </div>
@@ -337,6 +391,45 @@ function EditorComponent() {
 
               <div>
                 <h4 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <LayoutTemplate size={14} />
+                  Templates
+                </h4>
+                <div className="flex flex-col gap-2">
+                  <div className="relative">
+                    <select
+                      value={selectedTemplateId}
+                      onChange={(e) => setSelectedTemplateId(e.target.value)}
+                      className="w-full bg-background border rounded-md py-2 pl-3 pr-8 text-xs appearance-none focus:ring-1 focus:ring-primary outline-none"
+                    >
+                      {templates.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                    <ChevronRight className="absolute right-3 top-2.5 text-muted-foreground rotate-90 pointer-events-none" size={14} />
+                  </div>
+
+                  <div className="bg-secondary/20 border border-white/5 rounded-md p-2 text-[10px] text-muted-foreground min-h-[40px]">
+                    {templates.find(t => t.id === selectedTemplateId)?.description}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      const template = templates.find(t => t.id === selectedTemplateId);
+                      if (template && confirm(`Load '${template.name}'? This will clear your current canvas.`)) {
+                        setNodes(template.nodes);
+                        setEdges(template.edges);
+                      }
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-colors text-xs font-semibold"
+                  >
+                    <LayoutTemplate size={12} />
+                    Load Template
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
                   <Grab size={14} />
                   Node Palette
                 </h4>
@@ -356,27 +449,27 @@ function EditorComponent() {
                   </div>
 
                   <div>
-                    <h5 className="text-[9px] text-muted-foreground mb-2 ml-1 uppercase tracking-tight">Vendors</h5>
-                    <div className="grid grid-cols-2 gap-2">
+                    <h5 className="text-[8px] text-muted-foreground/60 mb-2 ml-1 uppercase tracking-widest font-bold">Vendors</h5>
+                    <div className="grid grid-cols-3 gap-1">
                       {[
-                        { id: 'nokia', name: 'Nokia SRL', icon: <Cpu size={14} className="text-blue-400" /> },
-                        { id: 'arista', name: 'Arista cEOS', icon: <Box size={14} className="text-sky-400" /> },
-                        { id: 'juniper', name: 'Juniper vSRX', icon: <HardDrive size={14} className="text-teal-400" /> },
-                        { id: 'frr', name: 'FRR Router', icon: <Network size={14} className="text-primary" /> },
-                        { id: 'vyos', name: 'VyOS', icon: <Share2 size={14} className="text-orange-400" /> },
-                        { id: 'mikrotik', name: 'Mikrotik', icon: <Network size={14} className="text-rose-400" /> },
-                      ].map((node) => (
+                        { id: 'nokia', name: 'Nokia', Icon: Cpu, color: 'text-blue-400' },
+                        { id: 'arista', name: 'Arista', Icon: Box, color: 'text-sky-400' },
+                        { id: 'juniper', name: 'Juniper', Icon: HardDrive, color: 'text-teal-400' },
+                        { id: 'frr', name: 'FRR', Icon: Network, color: 'text-primary' },
+                        { id: 'vyos', name: 'VyOS', Icon: Share2, color: 'text-orange-400' },
+                        { id: 'mikrotik', name: 'Mikrotik', Icon: Network, color: 'text-rose-400' },
+                      ].map(({ id, name, Icon, color }) => (
                         <div
-                          key={node.id}
+                          key={id}
                           draggable
-                          onDragStart={(e) => onDragStart(e, node.id)}
-                          className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-secondary/20 border border-transparent hover:border-primary/40 hover:bg-secondary/40 transition-all cursor-grab active:cursor-grabbing group text-center"
-                          title={node.name}
+                          onDragStart={(e) => onDragStart(e, id)}
+                          className="flex flex-col items-center gap-0.5 p-1 rounded-sm bg-white/[0.03] border border-white/5 hover:border-primary/40 hover:bg-primary/5 transition-all cursor-grab active:cursor-grabbing group"
+                          title={name}
                         >
-                          <div className="w-7 h-7 rounded bg-background flex items-center justify-center border group-hover:border-primary/20">
-                            {node.icon}
+                          <div className="w-4 h-4 rounded-sm bg-secondary/30 flex items-center justify-center border border-white/5 group-hover:border-primary/20 shadow-inner">
+                            <Icon size={10} className={color} />
                           </div>
-                          <span className="text-[9px] font-medium truncate w-full">{node.name}</span>
+                          <span className="text-[6px] font-bold text-muted-foreground/50 group-hover:text-foreground uppercase tracking-tighter truncate w-full text-center">{name}</span>
                         </div>
                       ))}
                     </div>
@@ -387,21 +480,6 @@ function EditorComponent() {
           )}
 
           <div className="mt-auto pt-6 border-t border-white/5">
-            <button
-              disabled={isDeploying}
-              onClick={handleDestroy}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 disabled:opacity-50 transition-colors text-xs font-semibold border border-destructive/20 mb-2"
-            >
-              <Trash2 size={14} />
-              Destroy Lab
-            </button>
-            <button
-              onClick={() => setShowLogs(!showLogs)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-secondary text-foreground hover:bg-secondary/80 transition-colors text-xs font-semibold"
-            >
-              <Terminal size={14} />
-              {showLogs ? 'Hide Logs' : 'Show Logs'}
-            </button>
             <div className="mt-4 text-center">
               <p className="text-[10px] text-muted-foreground/50 flex items-center justify-center gap-1">
                 Made with <span className="text-primary/50">❤️</span> by <span className="font-semibold text-foreground/40">srk</span>
@@ -425,7 +503,7 @@ function EditorComponent() {
             nodeTypes={nodeTypes}
             fitView
           >
-            <Background color="#1e293b" gap={20} />
+            <Background color="#1e293b" gap={15} size={0.5} className="opacity-40" />
             <Controls />
             <Panel position="top-right" className="bg-background/80 border glass px-3 py-1 rounded-md text-[10px] text-muted-foreground flex items-center gap-2">
               <Info size={12} className="text-primary" />
@@ -468,7 +546,18 @@ function EditorComponent() {
 
         {/* Console Panel */}
         {showLogs && (
-          <aside className="w-[500px] border-l glass flex flex-col shrink-0 animate-in slide-in-from-right duration-300">
+          <aside
+            className={`border-l glass flex flex-col shrink-0 relative animate-in slide-in-from-right duration-300 ${isResizing ? 'transition-none select-none' : ''}`}
+            style={{ width: `${consoleWidth}px` }}
+          >
+            {/* Resize Handle */}
+            <div
+              onMouseDown={startResizing}
+              className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 transition-colors z-20 group"
+            >
+              <div className="absolute left-[-4px] top-1/2 -translate-y-1/2 w-2 h-8 rounded-full bg-border opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+
             <div className="h-12 border-b flex items-center justify-between px-4 shrink-0 bg-[#0f1117]">
               <span className="text-sm font-semibold flex items-center gap-2">
                 <Terminal size={16} className="text-primary" />

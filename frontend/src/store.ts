@@ -20,6 +20,7 @@ export type ClabNodeData = {
     kind: string;
     image: string;
     mgmt_ipv4?: string;
+    exec?: string[];
 };
 
 export type ClabStore = {
@@ -38,6 +39,8 @@ export type ClabStore = {
     setApiToken: (token: string) => void;
     setApiUser: (user: string) => void;
     setLabName: (name: string) => void;
+    setNodes: (nodes: Node<ClabNodeData>[]) => void;
+    setEdges: (edges: Edge[]) => void;
 };
 
 const getInterfaceName = (kind: string, index: number) => {
@@ -138,4 +141,6 @@ export const useStore = create<ClabStore>((set, get) => ({
     setLabName: (name: string) => {
         set({ labName: name });
     },
+    setNodes: (nodes: Node<ClabNodeData>[]) => set({ nodes }),
+    setEdges: (edges: Edge[]) => set({ edges }),
 }));
