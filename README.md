@@ -8,8 +8,8 @@
 
 - **Nano-Scale Visuals**: Ultra-compact node design for high-density network modeling.
 - **Drag & Drop Palette**: Rapidly build topologies by dragging vendor nodes directly onto a fluid canvas.
-- **Node Property Editor**: Click any node to customize hostnames and specify Docker images (crucial for private/local images like Arista cEOS).
 - **Smart Interface Management**: Automatic, vendor-aware interface naming (e.g., `ethernet-1/X` for Nokia, `ge-0/0/X` for Juniper).
+- **Node Property Editor**: Click any node to customize hostnames and specify Docker images (crucial for private/local images like Arista cEOS).
 - **Dynamic Lab Management**: Isolation via customizable lab names and real-time conflict resolution tips.
 - **Lab Console**: Integrated real-time log viewer with ANSI support and clean table formatting.
 - **Secure Remote Access**: Powered by a CORS Relay that handles JWT authentication and command execution on remote hosts.
