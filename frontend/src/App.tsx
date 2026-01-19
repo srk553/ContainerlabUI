@@ -112,6 +112,10 @@ function EditorComponent() {
         if (errorStr.includes("pull access denied") || errorStr.includes("repository does not exist")) {
           addLog("TIP: This node (e.g. Arista/Juniper) requires a local Docker image or specific registry login. Ensure the image is available on your remote host or click the node to edit its 'Image' property.");
         }
+        if (errorStr.includes("referenced in topology but does not exist")) {
+          const bridgeName = errorStr.match(/bridge "([^"]+)"/)?.[1] || "the bridge";
+          addLog(`TIP: Bridge nodes must exist on your remote Linux host. Create it using: 'sudo ip link add name ${bridgeName} type bridge && sudo ip link set ${bridgeName} up'`);
+        }
       }
     } catch (error: any) {
       addLog(`Relay Connection Failed: ${error.message}. Is the backend running?`);
@@ -170,8 +174,7 @@ function EditorComponent() {
       'arista': 'ceos:latest',
       'juniper': 'vrnetlab/vr-vsrx:latest',
       'vyos': 'vyos/vyos:1.3.0',
-      'mikrotik': 'mikrotik/ros:latest',
-      'bridge': '' // Bridges don't have images
+      'mikrotik': 'mikrotik/ros:latest'
     };
     return images[kind] || 'alpine:latest';
   };
@@ -276,18 +279,16 @@ function EditorComponent() {
                     className="w-full bg-background border rounded-md py-1.5 px-3 text-xs focus:ring-1 focus:ring-primary outline-none"
                   />
                 </div>
-                {selectedNode.data.kind !== 'bridge' && (
-                  <div>
-                    <label className="text-[10px] text-muted-foreground mb-1 block">Docker Image</label>
-                    <input
-                      type="text"
-                      value={selectedNode.data.image}
-                      onChange={(e) => updateNodeData(selectedNode.id, { image: e.target.value })}
-                      className="w-full bg-background border rounded-md py-1.5 px-3 text-xs font-mono focus:ring-1 focus:ring-primary outline-none"
-                    />
-                    <p className="text-[9px] text-muted-foreground mt-1 px-1">Tip: Use local images like 'ceos:4.30' for Arista.</p>
-                  </div>
-                )}
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">Docker Image</label>
+                  <input
+                    type="text"
+                    value={selectedNode.data.image}
+                    onChange={(e) => updateNodeData(selectedNode.id, { image: e.target.value })}
+                    className="w-full bg-background border rounded-md py-1.5 px-3 text-xs font-mono focus:ring-1 focus:ring-primary outline-none"
+                  />
+                  <p className="text-[9px] text-muted-foreground mt-1 px-1">Tip: Use local images like 'ceos:4.30' for Arista.</p>
+                </div>
                 <div className="pt-2 border-t border-white/5">
                   <p className="text-[10px] text-muted-foreground">Type: <span className="text-foreground uppercase font-mono">{selectedNode.data.kind}</span></p>
                 </div>
@@ -340,20 +341,6 @@ function EditorComponent() {
                   Node Palette
                 </h4>
                 <div className="space-y-4">
-                  <div>
-                    <h5 className="text-[9px] text-muted-foreground mb-2 ml-1">Connectors</h5>
-                    <div
-                      draggable
-                      onDragStart={(e) => onDragStart(e, 'bridge')}
-                      className="w-full flex items-center gap-3 p-2.5 rounded-lg bg-secondary/30 border border-transparent hover:border-primary/50 hover:bg-secondary/50 transition-all cursor-grab active:cursor-grabbing group"
-                    >
-                      <div className="w-8 h-8 rounded bg-background flex items-center justify-center border group-hover:border-primary/30">
-                        <Milestone size={16} className="text-yellow-400" />
-                      </div>
-                      <span className="text-xs font-medium">Linux Bridge</span>
-                    </div>
-                  </div>
-
                   <div>
                     <h5 className="text-[9px] text-muted-foreground mb-2 ml-1">Hosts</h5>
                     <div
