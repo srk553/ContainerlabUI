@@ -8,7 +8,35 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useStore } from './store';
-import { Network, Server, Play, FileCode, ChevronRight, X, Terminal, Trash2, Settings, Globe, User, Cpu, Box, HardDrive, Share2, Tag, Grab, Info, Edit3, LayoutTemplate, Eraser } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github-dark.css';
+import {
+  Network,
+  Play,
+  Trash2,
+  Terminal,
+  Share2,
+  Eraser,
+  FileCode,
+  BookOpen,
+  Edit3,
+  X,
+  Settings,
+  Tag,
+  Globe,
+  User,
+  LayoutTemplate,
+  ChevronRight,
+  Monitor,
+  Cpu,
+  Box,
+  HardDrive,
+  Grab,
+  Server,
+  Info
+} from 'lucide-react';
 import { generateClabYaml, generateClabConfig, parseClabYamlToFlow } from './utils';
 import Editor from '@monaco-editor/react';
 import ClabNode from './components/ClabNode';
@@ -24,13 +52,17 @@ function EditorComponent() {
 
   const [yamlPreview, setYamlPreview] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [showDoc, setShowDoc] = useState(false);
+  const [docContent, setDocContent] = useState<string>('');
   const [logs, setLogs] = useState<string[]>([]);
   const [showLogs, setShowLogs] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [consoleWidth, setConsoleWidth] = useState(500);
   const [yamlWidth, setYamlWidth] = useState(400);
+  const [docWidth, setDocWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
   const [isResizingYaml, setIsResizingYaml] = useState(false);
+  const [isResizingDoc, setIsResizingDoc] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [dynamicTemplates, setDynamicTemplates] = useState<string[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
@@ -52,9 +84,14 @@ function EditorComponent() {
     setIsResizingYaml(true);
   }, []);
 
+  const startResizingDoc = useCallback(() => {
+    setIsResizingDoc(true);
+  }, []);
+
   const stopResizing = useCallback(() => {
     setIsResizing(false);
     setIsResizingYaml(false);
+    setIsResizingDoc(false);
   }, []);
 
   const resize = useCallback((mouseMoveEvent: MouseEvent) => {
@@ -70,7 +107,13 @@ function EditorComponent() {
         setYamlWidth(newWidth);
       }
     }
-  }, [isResizing, isResizingYaml]);
+    if (isResizingDoc) {
+      const newWidth = window.innerWidth - mouseMoveEvent.clientX;
+      if (newWidth > 300 && newWidth < 1200) {
+        setDocWidth(newWidth);
+      }
+    }
+  }, [isResizing, isResizingYaml, isResizingDoc]);
 
   useEffect(() => {
     window.addEventListener("mousemove", resize);
@@ -143,7 +186,9 @@ function EditorComponent() {
           const { nodes: newNodes, edges: newEdges } = parseClabYamlToFlow(data.content);
           setNodes(newNodes);
           setEdges(newEdges);
-          setLabName(filename.replace('.clab.yaml', '').replace('.clab.yml', ''));
+          setLabName(filename.replace(/.clab.y(a)?ml$/, ''));
+          setDocContent(data.doc || '');
+          if (data.doc) setShowDoc(true);
         }
       }
     } catch (e) {
@@ -355,6 +400,16 @@ function EditorComponent() {
             <FileCode size={14} />
             YAML
           </button>
+
+          {docContent && (
+            <button
+              onClick={() => setShowDoc(!showDoc)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors text-xs font-semibold border ${showDoc ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-secondary/50 text-foreground border-white/10 hover:bg-secondary'}`}
+            >
+              <BookOpen size={14} />
+              Guide
+            </button>
+          )}
           <div className="h-4 w-px bg-white/10 mx-1" />
           <button
             disabled={isDeploying}
@@ -597,6 +652,36 @@ function EditorComponent() {
             </Panel>
           </ReactFlow>
         </main>
+
+        {showDoc && (
+          <aside
+            className={`border-l glass flex flex-col shrink-0 relative animate-in slide-in-from-right duration-300 ${isResizingDoc ? 'transition-none select-none' : ''}`}
+            style={{ width: `${docWidth}px` }}
+          >
+            {/* Resize Handle */}
+            <div
+              onMouseDown={startResizingDoc}
+              className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 transition-colors z-20 group"
+            >
+              <div className="absolute left-[-4px] top-1/2 -translate-y-1/2 w-2 h-8 rounded-full bg-border opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+
+            <div className="p-4 border-b border-white/10 bg-white/5 flex items-center justify-between sticky top-0 backdrop-blur-md z-10">
+              <h2 className="font-semibold flex items-center gap-2 text-sm">
+                <BookOpen size={16} className="text-indigo-400" />
+                Lab Documentation
+              </h2>
+              <button onClick={() => setShowDoc(false)} className="text-muted-foreground hover:text-foreground">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1 prose prose-invert prose-sm max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                {docContent}
+              </ReactMarkdown>
+            </div>
+          </aside>
+        )}
 
         {/* YAML Preview Panel */}
         {showPreview && (

@@ -114,7 +114,7 @@ async def get_template(filename: str):
     Returns the content of a specific template file.
     """
     # Security check to prevent directory traversal
-    if ".." in filename or "/" in filename or "\\" in filename:
+    if ".." in filename or "/" in filename:
         raise HTTPException(status_code=400, detail="Invalid filename")
 
     templates_dir = os.path.join(os.path.dirname(__file__), "..", "templates")
@@ -123,10 +123,39 @@ async def get_template(filename: str):
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Template not found")
 
-    with open(file_path, "r") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         content = f.read()
+        
+    # Check for documentation file (try .md, .clab.md)
+    # Strategy: remove extension from known types and try adding .md / .clab.md
+    # Or simply: if file is X.clab.yml, look for X.clab.md
     
-    return {"filename": filename, "content": content}
+    doc_content = ""
+    
+    # Try exact replace of extension
+    base_name = os.path.splitext(filename)[0]
+    possible_docs = [
+        base_name + ".md",
+        base_name + ".clab.md"
+    ]
+    
+    # Also handle the .clab.yaml case where splitext might leave .clab
+    if filename.endswith(".clab.yaml") or filename.endswith(".clab.yml"):
+        simple_name = filename.replace(".clab.yaml", "").replace(".clab.yml", "")
+        possible_docs.append(simple_name + ".clab.md")
+        possible_docs.append(simple_name + ".md")
+
+    # If the user saved as .clab.md specifically (like lab01-single-host.clab.md) matching lab01-single-host.clab.yml
+    # Let's just check for variations
+    
+    for doc_name in possible_docs:
+        doc_path = os.path.join(templates_dir, doc_name)
+        if os.path.exists(doc_path):
+             with open(doc_path, "r", encoding="utf-8") as f:
+                doc_content = f.read()
+             break
+
+    return {"filename": filename, "content": content, "doc": doc_content}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
