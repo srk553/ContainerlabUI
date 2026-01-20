@@ -8,7 +8,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useStore } from './store';
-import { Network, Server, Play, FileCode, ChevronRight, X, Terminal, Trash2, Settings, Globe, User, Cpu, Box, HardDrive, Share2, Tag, Grab, Info, Edit3, LayoutTemplate } from 'lucide-react';
+import { Network, Server, Play, FileCode, ChevronRight, X, Terminal, Trash2, Settings, Globe, User, Cpu, Box, HardDrive, Share2, Tag, Grab, Info, Edit3, LayoutTemplate, Eraser } from 'lucide-react';
 import { generateClabYaml, generateClabConfig } from './utils';
 import Editor from '@monaco-editor/react';
 import ClabNode from './components/ClabNode';
@@ -28,7 +28,9 @@ function EditorComponent() {
   const [showLogs, setShowLogs] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [consoleWidth, setConsoleWidth] = useState(500);
+  const [yamlWidth, setYamlWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
+  const [isResizingYaml, setIsResizingYaml] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(templates[0]?.id || '');
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -44,8 +46,13 @@ function EditorComponent() {
     setIsResizing(true);
   }, []);
 
+  const startResizingYaml = useCallback(() => {
+    setIsResizingYaml(true);
+  }, []);
+
   const stopResizing = useCallback(() => {
     setIsResizing(false);
+    setIsResizingYaml(false);
   }, []);
 
   const resize = useCallback((mouseMoveEvent: MouseEvent) => {
@@ -55,7 +62,13 @@ function EditorComponent() {
         setConsoleWidth(newWidth);
       }
     }
-  }, [isResizing]);
+    if (isResizingYaml) {
+      const newWidth = window.innerWidth - mouseMoveEvent.clientX;
+      if (newWidth > 300 && newWidth < 1200) {
+        setYamlWidth(newWidth);
+      }
+    }
+  }, [isResizing, isResizingYaml]);
 
   useEffect(() => {
     window.addEventListener("mousemove", resize);
@@ -271,6 +284,19 @@ function EditorComponent() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (confirm('Are you sure you want to clear the canvas?')) {
+                setNodes([]);
+                setEdges([]);
+              }
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-secondary/50 text-muted-foreground border border-white/10 hover:bg-secondary hover:text-foreground transition-colors text-xs font-semibold"
+            title="Clear Canvas"
+          >
+            <Eraser size={14} />
+          </button>
+          <div className="h-4 w-px bg-white/10 mx-1" />
           <button
             onClick={() => setShowPreview(!showPreview)}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors text-xs font-semibold border ${showPreview ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary/50 text-foreground border-white/10 hover:bg-secondary'}`}
@@ -514,7 +540,18 @@ function EditorComponent() {
 
         {/* YAML Preview Panel */}
         {showPreview && (
-          <aside className="w-[400px] border-l glass flex flex-col shrink-0 animate-in slide-in-from-right duration-300">
+          <aside
+            className={`border-l glass flex flex-col shrink-0 relative animate-in slide-in-from-right duration-300 ${isResizingYaml ? 'transition-none select-none' : ''}`}
+            style={{ width: `${yamlWidth}px` }}
+          >
+            {/* Resize Handle */}
+            <div
+              onMouseDown={startResizingYaml}
+              className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 transition-colors z-20 group"
+            >
+              <div className="absolute left-[-4px] top-1/2 -translate-y-1/2 w-2 h-8 rounded-full bg-border opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+
             <div className="h-12 border-b flex items-center justify-between px-4 shrink-0 bg-background/50">
               <span className="text-sm font-semibold flex items-center gap-2">
                 <FileCode size={16} className="text-primary" />
@@ -563,9 +600,18 @@ function EditorComponent() {
                 <Terminal size={16} className="text-primary" />
                 Lab Console
               </span>
-              <button onClick={() => setShowLogs(false)} className="text-muted-foreground hover:text-foreground">
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setLogs([])}
+                  className="text-muted-foreground hover:text-destructive transition-colors mr-2"
+                  title="Clear Logs"
+                >
+                  <Eraser size={16} />
+                </button>
+                <button onClick={() => setShowLogs(false)} className="text-muted-foreground hover:text-foreground">
+                  <X size={20} />
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-auto bg-[#0c0e14] p-4 font-mono text-[11px] text-blue-100/90 leading-relaxed custom-scrollbar">
               {logs.map((log, i) => (

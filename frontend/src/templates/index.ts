@@ -1,6 +1,7 @@
 import type { Node, Edge } from 'reactflow';
 import { linuxBridgeBasic } from './linux-bridge-basic';
 import { linuxBridgeVlan } from './linux-bridge-vlan';
+import { linuxBridgeInterVlan } from './linux-bridge-intervlan';
 // Import the original simple template logic (we'll inline it here for simplicity or migrate it properly)
 
 export interface TopologyTemplate {
@@ -62,5 +63,6 @@ const switch2Hosts: TopologyTemplate = {
 export const templates: TopologyTemplate[] = [
     linuxBridgeBasic,
     linuxBridgeVlan,
+    linuxBridgeInterVlan,
     switch2Hosts
 ];
