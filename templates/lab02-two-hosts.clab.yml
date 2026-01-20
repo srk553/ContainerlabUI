@@ -1,0 +1,31 @@
+name: lab02-two-hosts
+
+topology:
+  nodes:
+    br:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - apk add --no-cache bridge-utils iproute2 tcpdump
+        - ip link add br0 type bridge
+        - ip link set br0 up
+
+    host1:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - apk add --no-cache iproute2 iputils
+        - ip addr add 10.0.0.1/24 dev eth1
+        - ip link set eth1 up
+
+    host2:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - apk add --no-cache iproute2 iputils
+        - ip addr add 10.0.0.2/24 dev eth1
+        - ip link set eth1 up
+
+  links:
+    - endpoints: ["host1:eth1", "br:eth1"]
+    - endpoints: ["host2:eth1", "br:eth2"]

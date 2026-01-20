@@ -1,0 +1,21 @@
+name: lab01-single-host
+
+topology:
+  nodes:
+    br:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - apk add --no-cache bridge-utils iproute2
+        - ip link add br0 type bridge
+        - ip link set br0 up
+
+    host1:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - apk add --no-cache iproute2 iputils
+
+  links:
+    - endpoints: ["host1:eth1", "br:eth1"]
+  

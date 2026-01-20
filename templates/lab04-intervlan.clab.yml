@@ -1,0 +1,48 @@
+name: lab04-intervlan
+
+topology:
+  nodes:
+    br:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - apk add --no-cache bridge-utils iproute2
+        - ip link add br0 type bridge vlan_filtering 1
+        - ip link set br0 up
+
+    router:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - apk add --no-cache iproute2
+        - ip link add link eth1 name eth1.10 type vlan id 10
+        - ip link add link eth1 name eth1.20 type vlan id 20
+        - ip addr add 10.10.10.254/24 dev eth1.10
+        - ip addr add 10.20.20.254/24 dev eth1.20
+        - ip link set eth1 up
+        - ip link set eth1.10 up
+        - ip link set eth1.20 up
+        - sysctl -w net.ipv4.ip_forward=1
+
+    host1:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - apk add --no-cache iproute2 iputils
+        - ip addr add 10.10.10.1/24 dev eth1
+        - ip route add default via 10.10.10.254
+        - ip link set eth1 up
+
+    host2:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - apk add --no-cache iproute2 iputils
+        - ip addr add 10.20.20.1/24 dev eth1
+        - ip route add default via 10.20.20.254
+        - ip link set eth1 up
+
+  links:
+    - endpoints: ["host1:eth1", "br:eth1"]
+    - endpoints: ["host2:eth1", "br:eth2"]
+    - endpoints: ["router:eth1", "br:eth3"]

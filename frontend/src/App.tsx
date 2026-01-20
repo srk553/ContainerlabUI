@@ -9,7 +9,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useStore } from './store';
 import { Network, Server, Play, FileCode, ChevronRight, X, Terminal, Trash2, Settings, Globe, User, Cpu, Box, HardDrive, Share2, Tag, Grab, Info, Edit3, LayoutTemplate, Eraser } from 'lucide-react';
-import { generateClabYaml, generateClabConfig } from './utils';
+import { generateClabYaml, generateClabConfig, parseClabYamlToFlow } from './utils';
 import Editor from '@monaco-editor/react';
 import ClabNode from './components/ClabNode';
 import { templates } from './templates/index';
@@ -31,7 +31,9 @@ function EditorComponent() {
   const [yamlWidth, setYamlWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
   const [isResizingYaml, setIsResizingYaml] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(templates[0]?.id || '');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [dynamicTemplates, setDynamicTemplates] = useState<string[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -99,6 +101,55 @@ function EditorComponent() {
 
   const stripAnsi = (str: string) => {
     return str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+  };
+
+  // Fetch dynamic templates on mount
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  const fetchTemplates = async () => {
+    setIsLoadingTemplates(true);
+    try {
+      const res = await fetch('http://localhost:8000/templates');
+      if (res.ok) {
+        const list = await res.json();
+        setDynamicTemplates(list);
+      }
+    } catch (e) {
+      console.error("Failed to fetch templates", e);
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  };
+
+  const loadTemplate = async (filename: string) => {
+    // Check if it's a built-in static template first (legacy support)
+    const staticTpl = templates.find(t => t.id === filename);
+    if (staticTpl) {
+      if (confirm(`Load built-in '${staticTpl.name}'? This will clear your current canvas.`)) {
+        setNodes(staticTpl.nodes);
+        setEdges(staticTpl.edges);
+      }
+      return;
+    }
+
+    // Otherwise try dynamic
+    try {
+      if (confirm(`Load '${filename}'? This will clear your current canvas.`)) {
+        const res = await fetch(`http://localhost:8000/templates/${filename}`);
+        if (res.ok) {
+          const data = await res.json();
+          const { nodes: newNodes, edges: newEdges } = parseClabYamlToFlow(data.content);
+          setNodes(newNodes);
+          setEdges(newEdges);
+          setLabName(filename.replace('.clab.yaml', '').replace('.clab.yml', ''));
+        }
+      }
+    } catch (e) {
+      alert('Failed to load template');
+      console.error(e);
+    }
   };
 
   const addLog = (message: any) => {
@@ -415,44 +466,53 @@ function EditorComponent() {
                 </div>
               </div>
 
-              <div>
-                <h4 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <LayoutTemplate size={14} />
-                  Templates
-                </h4>
-                <div className="flex flex-col gap-2">
-                  <div className="relative">
-                    <select
-                      value={selectedTemplateId}
-                      onChange={(e) => setSelectedTemplateId(e.target.value)}
-                      className="w-full bg-background border rounded-md py-2 pl-3 pr-8 text-xs appearance-none focus:ring-1 focus:ring-primary outline-none"
-                    >
+              <h4 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
+                <LayoutTemplate size={14} />
+                Templates
+              </h4>
+              <div className="flex flex-col gap-2">
+                <div className="relative">
+                  <select
+                    value={selectedTemplateId}
+                    onChange={(e) => setSelectedTemplateId(e.target.value)}
+                    className="w-full bg-background border rounded-md py-2 pl-3 pr-8 text-xs appearance-none focus:ring-1 focus:ring-primary outline-none"
+                  >
+                    <option value="">Select a template...</option>
+                    <optgroup label="Local Files">
+                      {dynamicTemplates.length > 0 ? (
+                        dynamicTemplates.map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))
+                      ) : (
+                        <option disabled>(No files found)</option>
+                      )}
+                    </optgroup>
+                    <optgroup label="Built-in Examples">
                       {templates.map(t => (
                         <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
-                    </select>
-                    <ChevronRight className="absolute right-3 top-2.5 text-muted-foreground rotate-90 pointer-events-none" size={14} />
-                  </div>
-
-                  <div className="bg-secondary/20 border border-white/5 rounded-md p-2 text-[10px] text-muted-foreground min-h-[40px]">
-                    {templates.find(t => t.id === selectedTemplateId)?.description}
-                  </div>
-
+                    </optgroup>
+                  </select>
+                  <ChevronRight className="absolute right-3 top-2.5 text-muted-foreground rotate-90 pointer-events-none" size={14} />
                   <button
-                    onClick={() => {
-                      const template = templates.find(t => t.id === selectedTemplateId);
-                      if (template && confirm(`Load '${template.name}'? This will clear your current canvas.`)) {
-                        setNodes(template.nodes);
-                        setEdges(template.edges);
-                      }
-                    }}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-colors text-xs font-semibold"
+                    onClick={fetchTemplates}
+                    className="absolute right-8 top-2 text-muted-foreground hover:text-primary transition-colors"
+                    title="Refresh Templates"
                   >
-                    <LayoutTemplate size={12} />
-                    Load Template
+                    <Share2 size={12} className={isLoadingTemplates ? "animate-spin" : ""} />
                   </button>
                 </div>
+
+                <button
+                  disabled={!selectedTemplateId}
+                  onClick={() => loadTemplate(selectedTemplateId)}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-colors text-xs font-semibold disabled:opacity-50"
+                >
+                  <LayoutTemplate size={12} />
+                  Load Template
+                </button>
               </div>
+
 
               <div>
                 <h4 className="text-[10px] text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -630,7 +690,7 @@ function EditorComponent() {
           </aside>
         )}
       </div>
-    </div>
+    </div >
   );
 }
 

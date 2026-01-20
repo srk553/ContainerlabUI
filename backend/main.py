@@ -85,5 +85,48 @@ async def relay_request(request: Request):
         print(f"Relay Error: {str(e)}")
         return {"status": 500, "error": str(e)}
 
+import os
+import glob
+
+# ... (imports)
+
+@app.get("/templates")
+async def list_templates():
+    """
+    Lists all available .clab.yaml or .clab.yml files in the templates directory.
+    """
+    templates_dir = os.path.join(os.path.dirname(__file__), "..", "templates")
+    if not os.path.exists(templates_dir):
+        return []
+
+    files = glob.glob(os.path.join(templates_dir, "*.clab.yaml")) + \
+            glob.glob(os.path.join(templates_dir, "*.clab.yml")) + \
+            glob.glob(os.path.join(templates_dir, "*.yaml")) + \
+            glob.glob(os.path.join(templates_dir, "*.yml"))
+    
+    # Filter out duplicates just in case (e.g. if file matches *clab.yaml and *.yaml)
+    unique_files = list(set([os.path.basename(f) for f in files]))
+    return sorted(unique_files)
+
+@app.get("/templates/{filename}")
+async def get_template(filename: str):
+    """
+    Returns the content of a specific template file.
+    """
+    # Security check to prevent directory traversal
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    templates_dir = os.path.join(os.path.dirname(__file__), "..", "templates")
+    file_path = os.path.join(templates_dir, filename)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    with open(file_path, "r") as f:
+        content = f.read()
+    
+    return {"filename": filename, "content": content}
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
