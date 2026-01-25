@@ -29,7 +29,6 @@ import {
   User,
   LayoutTemplate,
   ChevronRight,
-  Monitor,
   Cpu,
   Box,
   HardDrive,
@@ -66,6 +65,8 @@ function EditorComponent() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [dynamicTemplates, setDynamicTemplates] = useState<string[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -194,6 +195,58 @@ function EditorComponent() {
     } catch (e) {
       alert('Failed to load template');
       console.error(e);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      let lastUploadedFilename = '';
+      for (const file of Array.from(files)) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('http://localhost:8000/templates/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          // alert(`✅ ${result.message}`); // Optional: reduce noise if auto-loading
+          lastUploadedFilename = result.filename;
+        } else {
+          const error = await response.json();
+          alert(`❌ Upload failed: ${error.detail}`);
+        }
+      }
+
+      // Refresh template list
+      await fetchTemplates();
+
+      // Auto-load the uploaded template if available
+      if (lastUploadedFilename) {
+        // Only auto-load if it's a template file (not just a readme)
+        if (lastUploadedFilename.endsWith('.yaml') || lastUploadedFilename.endsWith('.yml')) {
+          setSelectedTemplateId(lastUploadedFilename);
+          // We give a small delay to ensure state updates or simply call loading directly
+          // Note: loadTemplate will ask for confirmation, which is good safety.
+          loadTemplate(lastUploadedFilename);
+        }
+      }
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (e) {
+      alert('Failed to upload file');
+      console.error(e);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -565,6 +618,27 @@ function EditorComponent() {
                 >
                   <LayoutTemplate size={12} />
                   Load Template
+                </button>
+
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".clab.yaml,.clab.yml,.yaml,.yml,.md,.clab.md"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+
+                {/* Upload button */}
+                <button
+                  disabled={isUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-md bg-secondary/50 text-foreground hover:bg-secondary border border-white/10 transition-colors text-xs font-semibold disabled:opacity-50"
+                  title="Upload template files from your computer"
+                >
+                  <FileCode size={12} />
+                  {isUploading ? 'Uploading...' : 'Upload Files'}
                 </button>
               </div>
 

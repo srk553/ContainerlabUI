@@ -21,6 +21,7 @@ export type ClabNodeData = {
     image: string;
     mgmt_ipv4?: string;
     exec?: string[];
+    cmd?: string;
 };
 
 export type ClabStore = {

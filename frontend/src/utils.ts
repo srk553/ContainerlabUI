@@ -42,6 +42,11 @@ export function generateClabConfig(nodes: Node<ClabNodeData>[], edges: Edge[], l
             nodeConfig.exec = node.data.exec;
         }
 
+        // Add cmd field (alternative to exec)
+        if (node.data.cmd) {
+            nodeConfig.cmd = node.data.cmd;
+        }
+
         clabConfig.topology.nodes[node.id] = nodeConfig;
     });
 
@@ -92,7 +97,6 @@ export function parseClabYamlToFlow(yamlContent: string): { nodes: Node<ClabNode
             // Map standard CLAB kinds to our internal kinds if possible, or default to linux
             // We use the reverse logic of getClabKindMapping roughly
             let kind = 'linux';
-            const img = nodeData.image || '';
 
             if (nodeData.kind === 'nokia_srlinux') kind = 'nokia';
             else if (nodeData.kind === 'ceos') kind = 'arista';
@@ -107,7 +111,8 @@ export function parseClabYamlToFlow(yamlContent: string): { nodes: Node<ClabNode
                     label: nodeName,
                     kind: kind, // You might want to map this back from image or kind more robustly
                     image: nodeData.image || 'alpine:latest',
-                    exec: nodeData.exec || []
+                    exec: nodeData.exec || [],
+                    cmd: nodeData.cmd || undefined
                 }
             });
         });

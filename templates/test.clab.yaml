@@ -33,17 +33,8 @@ topology:
         sleep infinity
         "
 
-    pc2:
-      kind: linux
-      image: ghcr.io/hellt/network-multitool
-      cmd: |
-        bash -c "
-        ip addr add 192.168.10.11/24 dev eth1 && \
-        ip link set eth1 up && \
-        sleep infinity
-        "
+
 
   links:
     # Each link uses a UNIQUE interface on sw1
     - endpoints: ["pc1:eth1", "sw1:eth1"]
-    - endpoints: ["pc2:eth1", "sw1:eth2"]

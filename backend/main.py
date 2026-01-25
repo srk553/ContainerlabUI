@@ -90,6 +90,54 @@ import glob
 
 # ... (imports)
 
+@app.post("/templates/upload")
+async def upload_template(request: Request):
+    """
+    Uploads a template file to the templates directory.
+    """
+    try:
+        form = await request.form()
+        file = form.get("file")
+        
+        if not file:
+            raise HTTPException(status_code=400, detail="No file provided")
+        
+        # Validate file extension
+        filename = file.filename
+        allowed_extensions = ['.clab.yaml', '.clab.yml', '.yaml', '.yml', '.md', '.clab.md']
+        if not any(filename.endswith(ext) for ext in allowed_extensions):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid file type. Allowed: {', '.join(allowed_extensions)}"
+            )
+        
+        # Security check to prevent directory traversal
+        if ".." in filename or "/" in filename or "\\" in filename:
+            raise HTTPException(status_code=400, detail="Invalid filename")
+        
+        templates_dir = os.path.join(os.path.dirname(__file__), "..", "templates")
+        os.makedirs(templates_dir, exist_ok=True)
+        
+        file_path = os.path.join(templates_dir, filename)
+        
+        # Read and save file
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+        
+        return {
+            "success": True,
+            "filename": filename,
+            "message": f"File '{filename}' uploaded successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/templates")
 async def list_templates():
     """
